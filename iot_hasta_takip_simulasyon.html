@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IoT Hasta Takip Sistemi — Simülasyon</title>
+<style>
+:root {
+  --bg-dark:    #04111f;
+  --bg-panel:   #071c30;
+  --bg-card:    #0b2540;
+  --bg-card2:   #0d2d4a;
+  --accent:     #00c8ff;
+  --accent2:    #00e5c8;
+  --green:      #3de89a;
+  --red:        #ff3d57;
+  --orange:     #ffab40;
+  --yellow:     #ffe066;
+  --purple:     #a78bfa;
+  --text:       #d8eef8;
+  --muted:      #6a9ab8;
+  --border:     rgba(0,200,255,0.12);
+  --border2:    rgba(0,200,255,0.22);
+  --lcd-bg:     #0e1e05;
+  --lcd-fg:     #7ed44a;
+  --glow-blue:  0 0 18px rgba(0,200,255,0.25);
+  --glow-red:   0 0 14px rgba(255,61,87,0.5);
+  --glow-green: 0 0 14px rgba(61,232,154,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:var(--bg-dark);
+  color:var(--text);
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* HEADER */
+.header{
+  background:linear-gradient(90deg,#040f1d 0%,#071c30 60%,#040f1d 100%);
+  border-bottom:1px solid var(--border2);
+  padding:9px 18px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+  box-shadow:0 2px 20px rgba(0,0,0,0.5);
+}
+.hdr-left{display:flex;align-items:center;gap:12px;}
+.hdr-logo{
+  width:36px;height:36px;border-radius:9px;
+  background:rgba(255,61,87,0.12);
+  border:1px solid rgba(255,61,87,0.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+}
+.hdr-title{font-size:1.05rem;font-weight:700;color:var(--accent);letter-spacing:.4px;}
+.hdr-sub{font-size:.7rem;color:var(--muted);margin-top:1px;}
+.hdr-right{display:flex;gap:14px;align-items:center;}
+.hdr-chip{display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--muted);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:var(--glow-green);animation:blink 2s ease-in-out infinite;}
+.dot.blue{background:var(--accent);box-shadow:0 0 10px rgba(0,200,255,0.5);}
+.dot.red{background:var(--red);box-shadow:var(--glow-red);}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+.led-pill{display:flex;align-items:center;gap:5px;background:rgba(255,61,87,.1);border:1px solid rgba(255,61,87,.2);border-radius:20px;padding:3px 10px;font-size:.68rem;color:var(--red);transition:all .2s;}
+.led-pill.off{background:rgba(30,60,80,.2);border-color:var(--border);color:var(--muted);}
+.led-glow{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:var(--glow-red);transition:all .2s;}
+.led-pill.off .led-glow{background:#1a3040;box-shadow:none;}
+.manual-pill{display:none;align-items:center;gap:5px;background:rgba(255,171,64,.12);border:1px solid rgba(255,171,64,.3);border-radius:20px;padding:3px 10px;font-size:.68rem;color:var(--orange);}
+.manual-pill.show{display:flex;}
+
+/* MAIN GRID */
+.layout{display:grid;grid-template-columns:230px 1fr 295px;flex:1;overflow:hidden;min-height:0;}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg-panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:12px 10px;gap:8px;}
+.sec-label{font-size:.6rem;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-bottom:1px;margin-top:4px;}
+.comp-card{background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:9px 11px;display:flex;align-items:center;gap:8px;transition:border-color .2s;}
+.comp-card:hover{border-color:var(--border2);}
+.comp-ico{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.ico-blue{background:rgba(0,200,255,0.12);color:var(--accent);}
+.ico-green{background:rgba(61,232,154,0.12);color:var(--green);}
+.ico-red{background:rgba(255,61,87,0.12);color:var(--red);}
+.ico-orange{background:rgba(255,171,64,0.12);color:var(--orange);}
+.ico-purple{background:rgba(167,139,250,0.12);color:var(--purple);}
+.ico-lcd{background:rgba(126,212,74,0.12);color:var(--lcd-fg);}
+.comp-name{font-size:.77rem;font-weight:600;margin-bottom:1px;}
+.comp-detail{font-size:.64rem;color:var(--muted);}
+.comp-dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--green);}
+.comp-dot.off{background:#1a3040;box-shadow:none;}
+.pin-table{background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:9px 11px;}
+.pin-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(0,200,255,0.06);font-size:.67rem;}
+.pin-row:last-child{border-bottom:none;}
+.pin-val{color:var(--accent);font-weight:700;font-family:'Courier New';}
+.ctrl-btn{width:100%;padding:7px;border-radius:8px;border:1px solid;cursor:pointer;font-size:.75rem;font-family:inherit;transition:all .18s;font-weight:600;margin-bottom:5px;}
+.btn-go{background:rgba(61,232,154,.12);border-color:var(--green);color:var(--green);}
+.btn-stop{background:rgba(255,61,87,.12);border-color:var(--red);color:var(--red);}
+.btn-rst{background:rgba(0,200,255,.08);border-color:var(--accent);color:var(--accent);}
+.btn-csv{background:rgba(0,180,166,.1);border-color:#00b4a6;color:#00b4a6;}
+.btn-snd{background:rgba(255,171,64,.08);border-color:var(--orange);color:var(--orange);}
+.btn-snd.on{background:rgba(61,232,154,.1);border-color:var(--green);color:var(--green);}
+.ctrl-btn:hover{filter:brightness(1.28);transform:translateY(-1px);}
+.ctrl-btn:active{transform:translateY(0);}
+.pot-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 11px;}
+.pot-top{display:flex;justify-content:space-between;font-size:.67rem;color:var(--muted);margin-bottom:6px;}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:linear-gradient(90deg,var(--accent) var(--fill,70%),#0d2540 var(--fill,70%));border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 6px rgba(0,200,255,.5);}
+input[type=range].range-temp{background:linear-gradient(90deg,var(--orange) var(--fill,50%),#0d2540 var(--fill,50%));}
+input[type=range].range-temp::-webkit-slider-thumb{background:var(--orange);box-shadow:0 0 6px rgba(255,171,64,.5);}
+input[type=range].range-bpm{background:linear-gradient(90deg,var(--red) var(--fill,28%),#0d2540 var(--fill,28%));}
+input[type=range].range-bpm::-webkit-slider-thumb{background:var(--red);box-shadow:0 0 6px rgba(255,61,87,.5);}
+
+/* Mode toggle */
+.mode-toggle-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;cursor:pointer;margin-bottom:0;}
+.mode-opt{flex:1;padding:6px 4px;font-size:.72rem;text-align:center;color:var(--muted);transition:all .2s;user-select:none;}
+.mode-opt.active{background:rgba(0,200,255,.15);color:var(--accent);font-weight:700;}
+.manual-ctrl{display:none;flex-direction:column;gap:7px;}
+.manual-ctrl.visible{display:flex;}
+
+/* Scenario buttons */
+.scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.scenario-btn{padding:6px 3px;border-radius:7px;border:1px solid;cursor:pointer;font-size:.68rem;font-family:inherit;font-weight:600;transition:all .18s;text-align:center;}
+.scenario-btn:hover{filter:brightness(1.3);transform:translateY(-1px);}
+.scenario-btn.active-sc{filter:brightness(1.4);box-shadow:0 0 10px currentColor;}
+.s-normal{background:rgba(61,232,154,.1);border-color:#3de89a;color:#3de89a;}
+.s-fever{background:rgba(255,61,87,.12);border-color:#ff3d57;color:#ff3d57;}
+.s-tachy{background:rgba(255,120,100,.1);border-color:#ff7080;color:#ff7080;}
+.s-brady{background:rgba(0,200,255,.08);border-color:#00c8ff;color:#00c8ff;}
+.s-run{background:rgba(255,171,64,.1);border-color:#ffab40;color:#ffab40;}
+.s-hypo{background:rgba(125,211,252,.08);border-color:#7dd3fc;color:#7dd3fc;}
+
+/* CENTER */
+.center{display:flex;flex-direction:column;overflow-y:auto;padding:12px;gap:10px;}
+.data-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.d-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;position:relative;overflow:hidden;}
+.d-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0;}
+.d-card.temp::after{background:linear-gradient(90deg,#ff6b35,var(--orange));}
+.d-card.bpm::after{background:linear-gradient(90deg,var(--red),#ff7096);}
+.d-card.spo2::after{background:linear-gradient(90deg,#7c3aed,var(--purple));}
+.d-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.d-label{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+.d-badge{font-size:.63rem;padding:2px 8px;border-radius:20px;font-weight:600;}
+.badge-ok{background:rgba(61,232,154,.15);color:var(--green);}
+.badge-warn{background:rgba(255,171,64,.15);color:var(--orange);}
+.badge-danger{background:rgba(255,61,87,.15);color:var(--red);}
+.d-val{font-size:2.2rem;font-weight:800;line-height:1;display:inline;}
+.d-val.temp{color:var(--orange);}
+.d-val.bpm{color:var(--red);}
+.d-val.spo2{color:var(--purple);}
+.d-unit{font-size:.9rem;color:var(--muted);margin-left:4px;font-weight:400;}
+.d-range{font-size:.62rem;color:var(--muted);margin-top:5px;}
+.d-calc{margin-top:7px;font-size:.62rem;color:var(--muted);background:var(--bg-dark);border-radius:5px;padding:4px 7px;font-family:'Courier New';}
+.d-calc span{color:var(--accent);}
+
+/* History chart */
+.hist-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:11px 13px;}
+.hist-legend{display:flex;align-items:center;gap:8px;font-size:.67rem;color:var(--muted);margin-bottom:7px;flex-wrap:wrap;}
+.leg-dot{width:22px;height:3px;border-radius:2px;display:inline-block;}
+canvas#history-canvas{width:100%;display:block;border-radius:6px;}
+
+/* LCD */
+.lcd-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;}
+.lcd-frame{background:var(--lcd-bg);border:3px solid #1a2d0a;border-radius:8px;padding:9px 15px;font-family:'Courier New',monospace;color:var(--lcd-fg);font-size:1.08rem;letter-spacing:2.5px;text-align:center;box-shadow:0 0 20px rgba(126,212,74,.08),inset 0 0 20px rgba(0,0,0,.4);position:relative;}
+.lcd-frame::before{content:'2×16 LCD — I²C (0x27)';position:absolute;top:-10px;left:12px;background:var(--bg-card);font-family:'Segoe UI',sans-serif;font-size:.6rem;color:var(--muted);padding:0 6px;letter-spacing:0;}
+.lcd-row{height:24px;display:flex;align-items:center;justify-content:center;}
+.lcd-cursor{display:inline-block;width:8px;height:13px;background:var(--lcd-fg);animation:cursor 1s step-end infinite;vertical-align:middle;}
+@keyframes cursor{0%,100%{opacity:1;}50%{opacity:0;}}
+
+/* Wave */
+.wave-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:11px 13px;}
+.wave-label{display:flex;align-items:center;gap:8px;font-size:.68rem;color:var(--muted);margin-bottom:7px;}
+.wave-badge{font-size:.6rem;padding:1px 7px;border-radius:10px;background:rgba(255,61,87,.1);color:var(--red);}
+svg.wave-svg{width:100%;display:block;}
+
+/* WiFi */
+.wifi-bar{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 13px;display:flex;align-items:center;gap:11px;}
+.wifi-ico{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;}
+.wifi-arc-g{display:flex;align-items:flex-end;gap:2px;height:20px;}
+.w-bar{background:var(--accent);border-radius:1px;width:5px;animation:wbar 1.2s ease-in-out infinite;}
+.w-bar:nth-child(1){height:5px;animation-delay:0s;}
+.w-bar:nth-child(2){height:11px;animation-delay:.15s;}
+.w-bar:nth-child(3){height:16px;animation-delay:.3s;}
+.w-bar:nth-child(4){height:20px;animation-delay:.45s;}
+@keyframes wbar{0%,100%{opacity:.25;}50%{opacity:1;}}
+.wifi-info{flex:1;}
+.wifi-title{font-size:.78rem;font-weight:600;color:var(--accent);}
+.wifi-sub{font-size:.64rem;color:var(--muted);}
+.send-tag{font-size:.7rem;}
+
+/* Serial */
+.serial-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.serial-head{background:#040f1d;padding:5px 11px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);font-size:.66rem;color:var(--muted);}
+.serial-traffic{display:flex;gap:4px;margin-left:auto;align-items:center;}
+.s-dot{width:5px;height:5px;border-radius:50%;}
+.s-dot.r{background:#ff5f57;}.s-dot.y{background:#febc2e;}.s-dot.g{background:#28c840;}
+.serial-body{background:#000;padding:9px 11px;font-family:'Courier New',monospace;font-size:.68rem;height:110px;overflow-y:auto;}
+.s-line{padding:1px 0;}
+.s-line.info{color:#00c8ff;}
+.s-line.ok{color:var(--green);}
+.s-line.warn{color:var(--orange);}
+.s-line.err{color:var(--red);}
+.s-line.data{color:#b0e0ff;}
+.serial-body::-webkit-scrollbar{width:3px;}
+.serial-body::-webkit-scrollbar-thumb{background:var(--border2);}
+
+/* RIGHT PANEL */
+.tspeak{background:var(--bg-panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:12px 11px;gap:9px;}
+.ts-hdr{display:flex;align-items:center;gap:9px;padding-bottom:9px;border-bottom:1px solid var(--border);}
+.ts-logo{width:28px;height:28px;border-radius:7px;background:#0072CE;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;font-family:'Courier New';letter-spacing:-1px;}
+.ts-title{font-size:.82rem;font-weight:700;}
+.ts-sub{font-size:.63rem;color:var(--muted);}
+.gauge-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;}
+.gauge-title{font-size:.66rem;color:var(--muted);text-align:center;margin-bottom:3px;}
+.gauge-wrap{display:flex;justify-content:center;}
+.chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;}
+.chart-title{font-size:.66rem;color:var(--muted);margin-bottom:5px;}
+canvas.mini-chart{width:100%;height:55px;display:block;}
+.packet-card{background:#000d1a;border:1px solid rgba(0,200,255,.2);border-radius:10px;padding:10px 12px;font-family:'Courier New';font-size:.66rem;line-height:1.7;}
+.p-get{color:#7dd3fc;}.p-key{color:var(--muted);}.p-v1{color:var(--orange);}.p-v2{color:var(--red);}.p-v3{color:var(--purple);}.p-ok{color:var(--green);}
+.alert-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;}
+.alert-row{display:flex;align-items:center;gap:6px;font-size:.69rem;padding:4px 7px;border-radius:6px;margin-bottom:3px;}
+.alert-row:last-child{margin-bottom:0;}
+.alert-row.ok{background:rgba(61,232,154,.08);color:var(--green);}
+.alert-row.warn{background:rgba(255,171,64,.1);color:var(--orange);}
+.alert-row.danger{background:rgba(255,61,87,.1);color:var(--red);}
+.stats-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(0,200,255,.05);font-size:.67rem;}
+.stat-row:last-child{border-bottom:none;}
+.stat-key{color:var(--muted);}
+.stat-val{font-weight:700;color:var(--text);}
+
+/* SpO2 bar */
+.spo2-bar-track{background:#0d2540;border-radius:3px;height:5px;overflow:hidden;margin-top:6px;}
+.spo2-bar-fill{height:100%;border-radius:3px;transition:width .5s,background .5s;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(0,200,255,.15);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="hdr-left">
+    <div class="hdr-logo">🫀</div>
+    <div>
+      <div class="hdr-title">IoT Hasta Takip Sistemi — Simülasyon</div>
+      <div class="hdr-sub">Arduino UNO &bull; ESP8266 &bull; LM35 &bull; Pulse &bull; SpO₂ &bull; ThingSpeak</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="manual-pill" id="manual-pill">🖐 Manuel Mod</div>
+    <div class="hdr-chip"><div class="dot"></div> Simülasyon</div>
+    <div class="hdr-chip"><div class="dot blue"></div> ThingSpeak</div>
+    <div class="led-pill off" id="led-pill">
+      <div class="led-glow" id="led-glow"></div>
+      <span id="led-label">LED D13</span>
+    </div>
+    <div class="hdr-chip" style="font-family:'Courier New';font-size:.73rem;color:var(--accent);" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <div class="sec-label">Bileşenler</div>
+    <div class="comp-card">
+      <div class="comp-ico ico-blue">🎛️</div>
+      <div><div class="comp-name">Arduino UNO</div><div class="comp-detail">ATmega328P · 16 MHz · 5 V</div></div>
+      <div class="comp-dot"></div>
+    </div>
+    <div class="comp-card">
+      <div class="comp-ico ico-blue">📡</div>
+      <div><div class="comp-name">ESP8266</div><div class="comp-detail">Wi-Fi · AT Komutları · 3.3 V</div></div>
+      <div class="comp-dot"></div>
+    </div>
+    <div class="comp-card">
+      <div class="comp-ico ico-orange">🌡️</div>
+      <div><div class="comp-name">LM35 Sıcaklık</div><div class="comp-detail">A0 · 10 mV/°C · ±0.5 °C</div></div>
+      <div class="comp-dot"></div>
+    </div>
+    <div class="comp-card">
+      <div class="comp-ico ico-red">❤️</div>
+      <div><div class="comp-name">Pulse Sensörü</div><div class="comp-detail">A1 · Timer2 ISR · 2 ms</div></div>
+      <div class="comp-dot"></div>
+    </div>
+    <div class="comp-card">
+      <div class="comp-ico ico-purple">💜</div>
+      <div><div class="comp-name">SpO₂ Simülasyonu</div><div class="comp-detail">Oksijen saturasyonu · %</div></div>
+      <div class="comp-dot"></div>
+    </div>
+    <div class="comp-card">
+      <div class="comp-ico ico-lcd">📺</div>
+      <div><div class="comp-name">2×16 LCD (I²C)</div><div class="comp-detail">SDA→A4 · SCL→A5 · 0x27</div></div>
+      <div class="comp-dot"></div>
+    </div>
+    <div class="comp-card">
+      <div class="comp-ico ico-red">💡</div>
+      <div><div class="comp-name">Kırmızı LED</div><div class="comp-detail">D13 · Gönderim indikatörü</div></div>
+      <div class="comp-dot" id="led-comp-dot" style="background:var(--red);box-shadow:var(--glow-red);"></div>
+    </div>
+
+    <div class="sec-label">Kontrol</div>
+    <button class="ctrl-btn btn-go"  onclick="startSim()">▶ &nbsp;Simülasyonu Başlat</button>
+    <button class="ctrl-btn btn-stop" onclick="stopSim()">■ &nbsp;Durdur</button>
+    <button class="ctrl-btn btn-rst"  onclick="resetSim()">↺ &nbsp;Sıfırla</button>
+    <button class="ctrl-btn btn-csv"  onclick="exportCSV()">⬇ &nbsp;CSV Dışa Aktar</button>
+    <button class="ctrl-btn btn-snd" id="snd-btn" onclick="toggleSound()">🔕 &nbsp;Alarm Sesi: Kapalı</button>
+
+    <div class="pot-wrap">
+      <div class="pot-top">
+        <span>🔩 LCD Kontrast (Pot.)</span>
+        <span id="pot-pct">70%</span>
+      </div>
+      <input type="range" id="pot" min="0" max="100" value="70" oninput="updateContrast(this.value)">
+    </div>
+
+    <!-- MANUAL CONTROL -->
+    <div class="sec-label">Manuel Kontrol</div>
+    <div class="mode-toggle-wrap" onclick="toggleMode()">
+      <div class="mode-opt active" id="mode-auto">⚙ Otomatik</div>
+      <div class="mode-opt" id="mode-man">🖐 Manuel</div>
+    </div>
+    <div id="manual-ctrl" class="manual-ctrl">
+      <div class="pot-wrap">
+        <div class="pot-top">
+          <span>🌡 Sıcaklık</span>
+          <span id="m-temp-label" style="color:var(--orange);font-weight:700;">36.8 °C</span>
+        </div>
+        <input type="range" class="range-temp" id="m-temp" min="34" max="42" step="0.1" value="36.8"
+          oninput="onManualTemp(this.value)">
+      </div>
+      <div class="pot-wrap">
+        <div class="pot-top">
+          <span>❤ Nabız</span>
+          <span id="m-bpm-label" style="color:var(--red);font-weight:700;">72 BPM</span>
+        </div>
+        <input type="range" class="range-bpm" id="m-bpm" min="30" max="180" step="1" value="72"
+          oninput="onManualBPM(this.value)">
+      </div>
+    </div>
+
+    <!-- SCENARIOS -->
+    <div class="sec-label">Hasta Senaryoları</div>
+    <div class="scenario-grid">
+      <button class="scenario-btn s-normal" id="sc-normal" onclick="setScenario('normal')">🟢 Normal</button>
+      <button class="scenario-btn s-fever"  id="sc-fever"  onclick="setScenario('fever')">🔴 Ateş</button>
+      <button class="scenario-btn s-tachy"  id="sc-tachy"  onclick="setScenario('tachy')">⚡ Taşikardi</button>
+      <button class="scenario-btn s-brady"  id="sc-brady"  onclick="setScenario('brady')">🔵 Bradikardi</button>
+      <button class="scenario-btn s-run"    id="sc-run"    onclick="setScenario('run')">🟠 Koşu</button>
+      <button class="scenario-btn s-hypo"   id="sc-hypo"   onclick="setScenario('hypo')">❄ Hipotermi</button>
+    </div>
+
+    <div class="sec-label">Pin Bağlantıları</div>
+    <div class="pin-table">
+      <div class="pin-row"><span>LM35 OUT</span><span class="pin-val">A0</span></div>
+      <div class="pin-row"><span>Pulse SIG</span><span class="pin-val">A1</span></div>
+      <div class="pin-row"><span>LCD SDA</span><span class="pin-val">A4</span></div>
+      <div class="pin-row"><span>LCD SCL</span><span class="pin-val">A5</span></div>
+      <div class="pin-row"><span>ESP TX→</span><span class="pin-val">D2</span></div>
+      <div class="pin-row"><span>ESP RX←</span><span class="pin-val">D3</span></div>
+      <div class="pin-row"><span>LED (+)</span><span class="pin-val">D13</span></div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+
+    <!-- Data cards: 3 columns -->
+    <div class="data-row">
+      <div class="d-card temp">
+        <div class="d-top">
+          <span class="d-label">🌡️ Vücut Sıcaklığı</span>
+          <span class="d-badge badge-ok" id="temp-badge">NORMAL</span>
+        </div>
+        <div>
+          <span class="d-val temp" id="temp-val">36.8</span>
+          <span class="d-unit">°C</span>
+        </div>
+        <div class="d-range">Normal: 36.1 – 37.2 °C</div>
+        <div class="d-calc">
+          ADC=<span id="adc-raw">75</span> · mV=<span id="mv-calc">368</span> · mV÷10=<span id="temp-formula">36.8</span>°C
+        </div>
+      </div>
+
+      <div class="d-card bpm">
+        <div class="d-top">
+          <span class="d-label">❤️ Kalp Atış Hızı</span>
+          <span class="d-badge badge-ok" id="bpm-badge">NORMAL</span>
+        </div>
+        <div>
+          <span class="d-val bpm" id="bpm-val">72</span>
+          <span class="d-unit">BPM</span>
+        </div>
+        <div class="d-range">Normal: 60 – 100 BPM</div>
+        <div class="d-calc">
+          ISR(2ms) · RR=<span id="ibi-calc">833</span>ms · 60000÷RR=<span id="bpm-formula">72</span>
+        </div>
+      </div>
+
+      <div class="d-card spo2">
+        <div class="d-top">
+          <span class="d-label">💜 SpO₂ Saturasyon</span>
+          <span class="d-badge badge-ok" id="spo2-badge">NORMAL</span>
+        </div>
+        <div>
+          <span class="d-val spo2" id="spo2-val">98</span>
+          <span class="d-unit">%</span>
+        </div>
+        <div class="d-range">Normal: ≥ 95% &nbsp;|&nbsp; Kritik: &lt; 90%</div>
+        <div class="d-calc">
+          Pulse oksimetre sim. · BPM+sıcaklık etkisi
+        </div>
+      </div>
+    </div>
+
+    <!-- History Chart -->
+    <div class="hist-wrap">
+      <div class="hist-legend">
+        <span style="font-weight:600;color:var(--text);">📉 Anlık Veri Geçmişi</span>
+        <span><span class="leg-dot" style="background:var(--orange);"></span> Sıcaklık (34–42°C)</span>
+        <span><span class="leg-dot" style="background:var(--red);"></span> BPM (30–180)</span>
+        <span><span class="leg-dot" style="background:var(--purple);"></span> SpO₂ (85–100%)</span>
+        <span style="margin-left:auto;font-size:.62rem;color:var(--muted);" id="hist-count">0 kayıt</span>
+      </div>
+      <canvas id="history-canvas" height="65"></canvas>
+    </div>
+
+    <!-- LCD Display -->
+    <div class="lcd-wrap">
+      <div class="sec-label" style="margin-bottom:7px;">📺 LCD Ekran Çıktısı (2×16 karakter)</div>
+      <div class="lcd-frame" id="lcd-frame">
+        <div class="lcd-row" id="lcd1">Temp: 36.8 C    </div>
+        <div class="lcd-row" id="lcd2">BPM:  72        </div>
+      </div>
+    </div>
+
+    <!-- Heartbeat wave -->
+    <div class="wave-wrap">
+      <div class="wave-label">
+        📈 Pulse Dalga Formu (ECG)
+        <span class="wave-badge">Timer2 · 2 ms örnekleme</span>
+        <span style="margin-left:auto;font-size:.63rem;color:var(--muted);">→ R-pik tespiti</span>
+      </div>
+      <svg class="wave-svg" height="65" viewBox="0 0 600 65" id="wave-svg">
+        <line x1="0" y1="32" x2="600" y2="32" stroke="rgba(255,61,87,.07)" stroke-width="1"/>
+        <polyline id="wave-poly" fill="none" stroke="#ff3d57" stroke-width="1.8"
+          stroke-linejoin="round" stroke-linecap="round" points=""/>
+      </svg>
+    </div>
+
+    <!-- WiFi indicator -->
+    <div class="wifi-bar">
+      <div class="wifi-ico">
+        <div class="wifi-arc-g">
+          <div class="w-bar"></div><div class="w-bar"></div>
+          <div class="w-bar"></div><div class="w-bar"></div>
+        </div>
+      </div>
+      <div class="wifi-info">
+        <div class="wifi-title">ESP8266 → api.thingspeak.com:80</div>
+        <div class="wifi-sub">SoftwareSerial D2/D3 · AT Komutları · HTTP GET · Her 15 s</div>
+      </div>
+      <div class="send-tag" id="send-tag" style="color:var(--muted);">— Bekliyor</div>
+    </div>
+
+    <!-- Serial Monitor -->
+    <div class="serial-wrap">
+      <div class="serial-head">
+        <div class="s-dot r"></div>
+        <div class="s-dot y"></div>
+        <div class="s-dot g"></div>
+        &nbsp;Arduino Seri Monitör — 9600 baud
+        <div class="serial-traffic">
+          <div class="dot blue" style="animation-duration:0.6s;" id="serial-dot"></div>
+          <span style="font-size:.63rem;" id="serial-rate">— bps</span>
+        </div>
+      </div>
+      <div class="serial-body" id="serial-body"></div>
+    </div>
+
+  </div><!-- end center -->
+
+  <!-- RIGHT: ThingSpeak -->
+  <div class="tspeak">
+    <div class="ts-hdr">
+      <div class="ts-logo">TS</div>
+      <div>
+        <div class="ts-title">ThingSpeak Dashboard</div>
+        <div class="ts-sub">IoT Hasta Takip — Public Channel</div>
+      </div>
+    </div>
+
+    <!-- Gauge: Temperature -->
+    <div class="gauge-card">
+      <div class="gauge-title">📊 Field 1 — Sıcaklık (°C)</div>
+      <div class="gauge-wrap">
+        <svg width="200" height="115" viewBox="0 0 200 115">
+          <path d="M 18 100 A 80 80 0 0 1 182 100" stroke="#0d2540" stroke-width="14" fill="none" stroke-linecap="round"/>
+          <path id="g-temp-arc" d="M 18 100 A 80 80 0 0 1 182 100" stroke="#ffab40" stroke-width="14" fill="none" stroke-linecap="round" stroke-dasharray="252" stroke-dashoffset="140"/>
+          <text x="100" y="90" text-anchor="middle" fill="#ffab40" font-size="22" font-weight="800" font-family="Segoe UI"><tspan id="g-temp-val">36.8</tspan></text>
+          <text x="100" y="105" text-anchor="middle" fill="#6a9ab8" font-size="10" font-family="Segoe UI">°C</text>
+          <text x="12" y="113" fill="#6a9ab8" font-size="8" font-family="Segoe UI">34°</text>
+          <text x="175" y="113" fill="#6a9ab8" font-size="8" font-family="Segoe UI">42°</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Gauge: BPM -->
+    <div class="gauge-card">
+      <div class="gauge-title">📊 Field 2 — Kalp Atış Hızı (BPM)</div>
+      <div class="gauge-wrap">
+        <svg width="200" height="115" viewBox="0 0 200 115">
+          <path d="M 18 100 A 80 80 0 0 1 182 100" stroke="#0d2540" stroke-width="14" fill="none" stroke-linecap="round"/>
+          <path id="g-bpm-arc" d="M 18 100 A 80 80 0 0 1 182 100" stroke="#ff3d57" stroke-width="14" fill="none" stroke-linecap="round" stroke-dasharray="252" stroke-dashoffset="175"/>
+          <text x="100" y="90" text-anchor="middle" fill="#ff3d57" font-size="22" font-weight="800" font-family="Segoe UI"><tspan id="g-bpm-val">72</tspan></text>
+          <text x="100" y="105" text-anchor="middle" fill="#6a9ab8" font-size="10" font-family="Segoe UI">BPM</text>
+          <text x="12" y="113" fill="#6a9ab8" font-size="8" font-family="Segoe UI">0</text>
+          <text x="170" y="113" fill="#6a9ab8" font-size="8" font-family="Segoe UI">180</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- SpO2 compact display -->
+    <div class="gauge-card">
+      <div class="gauge-title">💜 Field 3 — SpO₂ Saturasyonu (%)</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px;">
+        <div>
+          <span id="g-spo2-val" style="font-size:1.9rem;font-weight:800;color:#a78bfa;">98.0</span>
+          <span style="color:var(--muted);font-size:.8rem;"> %</span>
+        </div>
+        <div style="font-size:.62rem;color:var(--muted);text-align:right;">
+          Normal ≥ 95%<br>Düşük &lt; 90%
+        </div>
+      </div>
+      <div class="spo2-bar-track">
+        <div class="spo2-bar-fill" id="g-spo2-bar" style="width:80%;background:#a78bfa;"></div>
+      </div>
+    </div>
+
+    <!-- HTTP Packet -->
+    <div class="packet-card">
+      <span class="p-get">GET</span> /update?api_key=<span style="color:#7dd3fc">XXXXXXXX</span><br>
+      &amp;field1=<span class="p-v1" id="pkt-f1">36.8</span><br>
+      &amp;field2=<span class="p-v2" id="pkt-f2">72</span><br>
+      &amp;field3=<span class="p-v3" id="pkt-f3">98.0</span><br>
+      <span class="p-key">Host: </span>api.thingspeak.com<br>
+      <span class="p-ok">HTTP/1.1 200 OK → Entry: <span id="pkt-entry">0</span></span>
+    </div>
+
+    <!-- Alerts -->
+    <div class="alert-card">
+      <div class="sec-label" style="margin-bottom:7px;">🚨 Alarm Durumu</div>
+      <div class="alert-row ok" id="al-temp">✅ &nbsp;Sıcaklık normal aralıkta</div>
+      <div class="alert-row ok" id="al-bpm">✅ &nbsp;Kalp atışı normal aralıkta</div>
+      <div class="alert-row ok" id="al-spo2">✅ &nbsp;SpO₂ normal aralıkta</div>
+      <div class="alert-row ok" id="al-wifi">✅ &nbsp;WiFi bağlantısı aktif</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-card">
+      <div class="sec-label" style="margin-bottom:7px;">📈 Oturum İstatistikleri</div>
+      <div class="stat-row"><span class="stat-key">Min/Max Sıcaklık</span><span class="stat-val" id="st-trange">—</span></div>
+      <div class="stat-row"><span class="stat-key">Min/Max BPM</span><span class="stat-val" id="st-brange">—</span></div>
+      <div class="stat-row"><span class="stat-key">Min SpO₂</span><span class="stat-val" id="st-smin">—</span></div>
+      <div class="stat-row"><span class="stat-key">Toplam Gönderim</span><span class="stat-val" id="st-sends">0</span></div>
+      <div class="stat-row"><span class="stat-key">Veri Kaydı</span><span class="stat-val" id="st-records">0</span></div>
+      <div class="stat-row"><span class="stat-key">Çalışma Süresi</span><span class="stat-val" id="st-uptime">0 s</span></div>
+    </div>
+  </div>
+
+</div><!-- end layout -->
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+let running = false;
+let simTimer = null, sendTimer = null, clockTimer = null;
+
+let temp = 36.8, bpm = 72, spo2 = 98.0;
+let tTarget = 36.8, bTarget = 72;
+let tMin = 99, tMax = -99, bMin = 999, bMax = -999, sMin = 100;
+let sends = 0, entry = 0;
+let t0 = null;
+let heartPhase = 0;
+let manualMode = false;
+let soundEnabled = false;
+let audioCtx = null;
+let activeScenario = null;
+
+/* History */
+const HIST = 90;
+const tHist = [], bHist = [], sHist = [];
+const dataLog = [];
+
+const serial = document.getElementById('serial-body');
+
+/* ============================================================
+   LOGGING
+   ============================================================ */
+function log(msg, cls='') {
+  const d = document.createElement('div');
+  d.className = 's-line ' + cls;
+  const ts = new Date().toLocaleTimeString('tr-TR', {hour12:false});
+  d.textContent = `[${ts}] ${msg}`;
+  serial.appendChild(d);
+  if (serial.children.length > 100) serial.firstChild.remove();
+  serial.scrollTop = serial.scrollHeight;
+}
+
+/* ============================================================
+   GAUGE
+   ============================================================ */
+function setGauge(arcId, valId, val, min, max, color, full=252) {
+  const pct = Math.max(0, Math.min(1, (val - min) / (max - min)));
+  document.getElementById(arcId).setAttribute('stroke-dashoffset', full - pct * full);
+  document.getElementById(arcId).setAttribute('stroke', color);
+  const el = document.getElementById(valId);
+  el.textContent = Number.isInteger(val) || val >= 10
+    ? (Math.abs(val - Math.round(val)) < 0.05 ? Math.round(val) : val.toFixed(1))
+    : val.toFixed(1);
+  el.setAttribute('fill', color);
+}
+
+/* ============================================================
+   CLASSIFY / COLORS
+   ============================================================ */
+function classify(val, lo1, lo2, hi1, hi2) {
+  if (val < lo2 || val > hi2) return 'danger';
+  if (val < lo1 || val > hi1) return 'warn';
+  return 'ok';
+}
+function classifySpo2(v) {
+  if (v < 90) return 'danger';
+  if (v < 95) return 'warn';
+  return 'ok';
+}
+function badgeClass(c) {
+  return c==='ok'?'d-badge badge-ok':c==='warn'?'d-badge badge-warn':'d-badge badge-danger';
+}
+function alertClass(c) { return 'alert-row ' + c; }
+function tempColor(v) {
+  if (v<35.5||v>38.5) return '#ff3d57';
+  if (v<36.1||v>37.2) return '#ffab40';
+  return '#3de89a';
+}
+function bpmColor(v) {
+  if (v<45||v>130) return '#ff3d57';
+  if (v<60||v>100) return '#ffab40';
+  return '#3de89a';
+}
+function spo2Color(v) {
+  if (v < 90) return '#ff3d57';
+  if (v < 95) return '#ffab40';
+  return '#a78bfa';
+}
+
+/* ============================================================
+   SPO2 CALCULATION
+   ============================================================ */
+function calcSpo2() {
+  let s = 98.8;
+  // BPM effect
+  if (bpm > 100) s -= (bpm - 100) / 35;
+  if (bpm < 60)  s -= (60 - bpm) / 18;
+  // Temperature effect
+  if (temp > 38.0) s -= (temp - 38.0) * 0.5;
+  if (temp < 35.5) s -= (35.5 - temp) * 0.4;
+  // Random noise
+  s += (Math.random() - 0.5) * 0.4;
+  return Math.max(85, Math.min(100, Math.round(s * 10) / 10));
+}
+
+/* ============================================================
+   HISTORY CHART
+   ============================================================ */
+function pushHistory() {
+  tHist.push(parseFloat(temp.toFixed(2)));
+  bHist.push(Math.round(bpm));
+  sHist.push(parseFloat(spo2.toFixed(1)));
+  if (tHist.length > HIST) { tHist.shift(); bHist.shift(); sHist.shift(); }
+
+  dataLog.push({
+    time: new Date().toLocaleTimeString('tr-TR', {hour12:false}),
+    temp: temp.toFixed(1),
+    bpm:  Math.round(bpm),
+    spo2: spo2.toFixed(1)
+  });
+  document.getElementById('st-records').textContent = dataLog.length;
+  document.getElementById('hist-count').textContent = tHist.length + ' kayıt';
+}
+
+function drawHistoryChart() {
+  const canvas = document.getElementById('history-canvas');
+  const W = canvas.offsetWidth || 500;
+  canvas.width = W;
+  const H = 65;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(0,200,255,0.06)';
+  ctx.lineWidth = 1;
+  [H*0.25, H*0.5, H*0.75].forEach(y => {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  });
+
+  const n = tHist.length;
+  if (n < 2) return;
+
+  function drawLine(arr, minV, maxV, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.7;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 3;
+    ctx.beginPath();
+    arr.forEach((v, i) => {
+      const x = (i / (HIST - 1)) * W;
+      const y = H - 3 - ((v - minV) / (maxV - minV)) * (H - 6);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  drawLine(tHist, 34, 42, '#ffab40');
+  drawLine(bHist, 30, 180, '#ff3d57');
+  drawLine(sHist, 85, 100, '#a78bfa');
+
+  // Current value dots
+  function drawDot(arr, minV, maxV, color) {
+    if (arr.length === 0) return;
+    const v = arr[arr.length - 1];
+    const x = ((arr.length - 1) / (HIST - 1)) * W;
+    const y = H - 3 - ((v - minV) / (maxV - minV)) * (H - 6);
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+  drawDot(tHist, 34, 42, '#ffab40');
+  drawDot(bHist, 30, 180, '#ff3d57');
+  drawDot(sHist, 85, 100, '#a78bfa');
+}
+
+/* ============================================================
+   FULL UI UPDATE
+   ============================================================ */
+function updateUI() {
+  const tFmt = temp.toFixed(1);
+  const bFmt = Math.round(bpm);
+  const sFmt = spo2.toFixed(1);
+  const mV   = (temp * 10).toFixed(1);
+  const adc  = Math.round((temp * 10 / 5000) * 1023);
+  const ibi  = Math.round(60000 / bpm);
+
+  /* Data cards */
+  document.getElementById('temp-val').textContent    = tFmt;
+  document.getElementById('bpm-val').textContent     = bFmt;
+  document.getElementById('spo2-val').textContent    = sFmt;
+  document.getElementById('adc-raw').textContent     = adc;
+  document.getElementById('mv-calc').textContent     = mV;
+  document.getElementById('temp-formula').textContent= tFmt;
+  document.getElementById('ibi-calc').textContent    = ibi;
+  document.getElementById('bpm-formula').textContent = bFmt;
+
+  /* Badges */
+  const tc = classify(temp, 36.1, 35.5, 37.2, 38.5);
+  const bc = classify(bpm,  60,   45,   100,  130);
+  const sc = classifySpo2(spo2);
+  const tBadge = document.getElementById('temp-badge');
+  const bBadge = document.getElementById('bpm-badge');
+  const sBadge = document.getElementById('spo2-badge');
+  tBadge.className = badgeClass(tc);
+  bBadge.className = badgeClass(bc);
+  sBadge.className = badgeClass(sc);
+  tBadge.textContent = tc==='ok'?'NORMAL':tc==='warn'?'DİKKAT':'KRİTİK!';
+  bBadge.textContent = bc==='ok'?'NORMAL':bc==='warn'?'DİKKAT':'KRİTİK!';
+  sBadge.textContent = sc==='ok'?'NORMAL':sc==='warn'?'DÜŞÜK':'KRİTİK!';
+
+  /* LCD */
+  const row1 = ('Temp: ' + tFmt + ' C').padEnd(16).substring(0,16);
+  const row2 = ('BPM:  ' + bFmt + '  SpO2:' + Math.round(spo2)).padEnd(16).substring(0,16);
+  document.getElementById('lcd1').textContent = row1;
+  document.getElementById('lcd2').textContent = row2;
+
+  /* ThingSpeak */
+  document.getElementById('pkt-f1').textContent = tFmt;
+  document.getElementById('pkt-f2').textContent = bFmt;
+  document.getElementById('pkt-f3').textContent = sFmt;
+
+  /* Gauges */
+  setGauge('g-temp-arc','g-temp-val', temp, 34, 42, tempColor(temp));
+  setGauge('g-bpm-arc', 'g-bpm-val',  bpm,  0, 180, bpmColor(bpm));
+
+  /* SpO2 display */
+  document.getElementById('g-spo2-val').textContent = sFmt;
+  const spo2Pct = Math.max(0, Math.min(100, (spo2 - 85) / 15 * 100));
+  const spo2Bar = document.getElementById('g-spo2-bar');
+  spo2Bar.style.width = spo2Pct + '%';
+  spo2Bar.style.background = spo2Color(spo2);
+  document.getElementById('g-spo2-val').style.color = spo2Color(spo2);
+
+  /* Alerts */
+  const tMsg = tc==='ok' ? '✅  Sıcaklık normal aralıkta'
+             : tc==='warn'? `⚠️  Subfebril: ${tFmt} °C`
+             : `🚨  ATEŞ! ${tFmt} °C — Kritik!`;
+  const bMsg = bc==='ok' ? '✅  Kalp atışı normal aralıkta'
+             : bc==='warn'? `⚠️  Dikkat: ${bFmt} BPM`
+             : `🚨  KRİTİK! ${bFmt} BPM`;
+  const sMsg = sc==='ok' ? '✅  SpO₂ normal aralıkta'
+             : sc==='warn'? `⚠️  Düşük SpO₂: ${sFmt}%`
+             : `🚨  KRİTİK SpO₂: ${sFmt}%`;
+  document.getElementById('al-temp').className = alertClass(tc);
+  document.getElementById('al-bpm').className  = alertClass(bc);
+  document.getElementById('al-spo2').className = alertClass(sc);
+  document.getElementById('al-temp').textContent = tMsg;
+  document.getElementById('al-bpm').textContent  = bMsg;
+  document.getElementById('al-spo2').textContent = sMsg;
+
+  /* Stats */
+  tMin = Math.min(tMin, temp); tMax = Math.max(tMax, temp);
+  bMin = Math.min(bMin, bpm);  bMax = Math.max(bMax, bpm);
+  sMin = Math.min(sMin, spo2);
+  document.getElementById('st-trange').textContent = tMin.toFixed(1) + ' – ' + tMax.toFixed(1) + ' °C';
+  document.getElementById('st-brange').textContent = Math.round(bMin) + ' – ' + Math.round(bMax) + ' BPM';
+  document.getElementById('st-smin').textContent   = sMin.toFixed(1) + ' %';
+
+  /* Uptime */
+  if (t0) {
+    const s = Math.floor((Date.now()-t0)/1000);
+    const m = Math.floor(s/60), ss = s%60;
+    document.getElementById('st-uptime').textContent = m>0 ? `${m} dk ${ss} s` : `${ss} s`;
+  }
+
+  /* Sync manual sliders when in auto mode */
+  if (!manualMode) {
+    const mt = document.getElementById('m-temp');
+    const mb = document.getElementById('m-bpm');
+    mt.value = temp.toFixed(1);
+    mb.value = Math.round(bpm);
+    mt.style.setProperty('--fill', ((temp-34)/8*100).toFixed(1)+'%');
+    mb.style.setProperty('--fill', ((bpm-30)/150*100).toFixed(1)+'%');
+    document.getElementById('m-temp-label').textContent = temp.toFixed(1) + ' °C';
+    document.getElementById('m-bpm-label').textContent  = Math.round(bpm) + ' BPM';
+  }
+}
+
+/* ============================================================
+   ECG WAVEFORM
+   ============================================================ */
+function ecgAt(phase, bpmVal) {
+  const period = 60/bpmVal;
+  const t = ((phase % period) + period) % period / period;
+  let y = 32;
+  if      (t < .10)  y = 32 - 6  * Math.sin(Math.PI * t/.10);
+  else if (t < .20)  y = 32;
+  else if (t < .22)  y = 32 + 5  * Math.sin(Math.PI*(t-.20)/.02);
+  else if (t < .26)  y = 32 - 46 * Math.sin(Math.PI*(t-.22)/.04);
+  else if (t < .29)  y = 32 + 13 * Math.sin(Math.PI*(t-.26)/.03);
+  else if (t < .48)  y = 32 - 12 * Math.sin(Math.PI*(t-.29)/.19);
+  else               y = 32;
+  return Math.max(4, Math.min(62, y));
+}
+function drawWave() {
+  const pts = [];
+  const N = 600;
+  const speed = 0.018 * (bpm / 72);
+  heartPhase += speed;
+  for (let i=0; i<N; i++) {
+    const ph = heartPhase - 5 + (i/N)*5;
+    pts.push(`${i},${ecgAt(ph, bpm)}`);
+  }
+  document.getElementById('wave-poly').setAttribute('points', pts.join(' '));
+}
+
+/* ============================================================
+   SOUND ALARM
+   ============================================================ */
+function playBeep(freq, dur, vol=0.25) {
+  if (!soundEnabled || !audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.frequency.value = freq;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + dur);
+}
+
+function checkAlarmSound() {
+  if (!soundEnabled) return;
+  const critical = temp > 38.5 || temp < 35.5 || bpm > 130 || bpm < 45 || spo2 < 92;
+  const warning  = temp > 37.2 || bpm > 100 || spo2 < 95;
+  if (critical && Math.random() < 0.025) {
+    playBeep(880, 0.12); setTimeout(() => playBeep(1100, 0.12), 200); setTimeout(() => playBeep(880, 0.12), 400);
+  } else if (warning && Math.random() < 0.012) {
+    playBeep(660, 0.1);
+  }
+}
+
+/* ============================================================
+   SIMULATION STEP
+   ============================================================ */
+function step() {
+  if (!running) return;
+
+  if (!manualMode) {
+    if (Math.random() < .006) tTarget = 35.8 + Math.random() * 3.2;
+    if (Math.random() < .006) bTarget = 52   + Math.random() * 75;
+    temp += (tTarget - temp) * .04 + (Math.random()-.5)*.06;
+    bpm  += (bTarget - bpm)  * .04 + (Math.random()-.5)*1.5;
+  } else {
+    temp += (Math.random() - 0.5) * 0.03;
+    bpm  += (Math.random() - 0.5) * 0.8;
+  }
+
+  temp = Math.max(34, Math.min(42, temp));
+  bpm  = Math.max(30, Math.min(175, bpm));
+  spo2 = calcSpo2();
+
+  pushHistory();
+  updateUI();
+  drawWave();
+  drawHistoryChart();
+  checkAlarmSound();
+
+  if (Math.random() < .15)
+    log(`T: ${temp.toFixed(1)}°C  BPM: ${Math.round(bpm)}  SpO2: ${spo2.toFixed(1)}%`, 'data');
+  if (temp > 38.0 && Math.random() < .07)
+    log(`UYARI → Yüksek sicaklik: ${temp.toFixed(1)} °C`, 'warn');
+  if ((bpm > 110 || bpm < 50) && Math.random() < .07)
+    log(`UYARI → Anormal KAH: ${Math.round(bpm)} BPM`, 'warn');
+  if (spo2 < 94 && Math.random() < .08)
+    log(`UYARI → Dusuk SpO2: ${spo2.toFixed(1)}%`, 'warn');
+}
+
+/* ============================================================
+   THINGSPEAK SEND
+   ============================================================ */
+function sendData() {
+  if (!running) return;
+  sends++; entry++;
+  document.getElementById('st-sends').textContent = sends;
+  document.getElementById('pkt-entry').textContent = entry;
+
+  const pill = document.getElementById('led-pill');
+  const tag  = document.getElementById('send-tag');
+  pill.classList.remove('off');
+  tag.textContent = '📤 Gönderiliyor...';
+  tag.style.color = '#ffab40';
+  log(`ThingSpeak HTTP GET → f1=${temp.toFixed(1)}&f2=${Math.round(bpm)}&f3=${spo2.toFixed(1)}`, 'info');
+
+  setTimeout(() => {
+    pill.classList.add('off');
+    tag.textContent = '✅ Gönderildi (#' + entry + ')';
+    tag.style.color = '#3de89a';
+    log(`ThingSpeak ← 200 OK  Entry ID: ${entry}`, 'ok');
+  }, 900);
+}
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+function tickClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('tr-TR', {hour12:false});
+}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+function startSim() {
+  if (running) return;
+  running = true; t0 = Date.now();
+  tMin=99; tMax=-99; bMin=999; bMax=-999; sMin=100;
+  log('=== SIMULASYON BASLADI ===', 'info');
+  log('Arduino UNO boot...', 'info');
+  log('Wire.begin() → LCD 0x27 baslatildi');
+  log('lcd.begin(16,2) ✓  Karsilama ekrani');
+  log('Timer2 CTC modu etkinlestirildi (2 ms ISR)');
+  log('analogReference(DEFAULT) → 5 V referans');
+  setTimeout(()=>{
+    log('SoftwareSerial(2,3) → ESP8266 baglantisi');
+    log('ESP8266 ← AT+RST → "ready"', 'ok');
+    log('ESP8266 ← AT+CWMODE=1 → "OK"', 'ok');
+    log('ESP8266 ← AT+CWJAP="SSID","pass" ...');
+  }, 800);
+  setTimeout(()=>{
+    log('ESP8266 ← WIFI CONNECTED', 'ok');
+    log('ESP8266 ← IP: 192.168.1.105', 'ok');
+    log('ThingSpeak baglantisi test ediliyor...');
+    log('ThingSpeak hazir ✓  Ilk gonderim 15 s sonra.', 'ok');
+  }, 2200);
+
+  simTimer  = setInterval(step, 180);
+  sendTimer = setInterval(sendData, 8000);
+  clockTimer= setInterval(tickClock, 1000);
+  setTimeout(sendData, 3000);
+  tickClock();
+}
+
+function stopSim() {
+  running = false;
+  clearInterval(simTimer); clearInterval(sendTimer); clearInterval(clockTimer);
+  log('=== SIMULASYON DURDURULDU ===', 'warn');
+  document.getElementById('send-tag').textContent = '⏸ Duraklatıldı';
+  document.getElementById('send-tag').style.color = '#ffab40';
+}
+
+function resetSim() {
+  stopSim();
+  temp=36.8; bpm=72; spo2=98.0; tTarget=36.8; bTarget=72;
+  sends=0; entry=0; t0=null;
+  tMin=99; tMax=-99; bMin=999; bMax=-999; sMin=100;
+  tHist.length=0; bHist.length=0; sHist.length=0;
+  dataLog.length=0;
+  serial.innerHTML='';
+  ['st-trange','st-brange','st-smin'].forEach(id=>
+    document.getElementById(id).textContent='—');
+  document.getElementById('st-sends').textContent='0';
+  document.getElementById('st-records').textContent='0';
+  document.getElementById('st-uptime').textContent='0 s';
+  document.getElementById('pkt-entry').textContent='0';
+  document.getElementById('send-tag').textContent='— Bekliyor';
+  document.getElementById('send-tag').style.color='var(--muted)';
+  document.getElementById('hist-count').textContent='0 kayıt';
+  setActiveScenarioBtn(null);
+  activeScenario = null;
+  const canvas = document.getElementById('history-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  updateUI();
+  log('Sistem sifirlaindi. Baslatmak icin ▶ butonuna basin.', 'info');
+}
+
+/* ============================================================
+   POTENTIOMETER
+   ============================================================ */
+function updateContrast(v) {
+  const op = .25 + (v/100)*.75;
+  const fr = document.getElementById('lcd-frame');
+  fr.style.color = `rgba(126,212,74,${op})`;
+  fr.style.textShadow = `0 0 ${v/15}px rgba(126,212,74,${op*.6})`;
+  document.getElementById('pot-pct').textContent = v + '%';
+  document.getElementById('pot').style.setProperty('--fill', v+'%');
+}
+
+/* ============================================================
+   MANUAL MODE
+   ============================================================ */
+function toggleMode() {
+  manualMode = !manualMode;
+  document.getElementById('mode-auto').classList.toggle('active', !manualMode);
+  document.getElementById('mode-man').classList.toggle('active', manualMode);
+  document.getElementById('manual-ctrl').classList.toggle('visible', manualMode);
+  document.getElementById('manual-pill').classList.toggle('show', manualMode);
+
+  if (manualMode) {
+    const mt = document.getElementById('m-temp');
+    const mb = document.getElementById('m-bpm');
+    mt.value = temp.toFixed(1);
+    mb.value = Math.round(bpm);
+    mt.style.setProperty('--fill', ((temp-34)/8*100).toFixed(1)+'%');
+    mb.style.setProperty('--fill', ((bpm-30)/150*100).toFixed(1)+'%');
+    document.getElementById('m-temp-label').textContent = temp.toFixed(1) + ' °C';
+    document.getElementById('m-bpm-label').textContent  = Math.round(bpm) + ' BPM';
+    log('Manuel mod aktif — kaydiricilarla deger ayarlayin.', 'info');
+    if (!running) startSim();
+  } else {
+    log('Otomatik mod aktif.', 'info');
+  }
+}
+
+function onManualTemp(v) {
+  temp = parseFloat(v);
+  tTarget = temp;
+  document.getElementById('m-temp-label').textContent = parseFloat(v).toFixed(1) + ' °C';
+  document.getElementById('m-temp').style.setProperty('--fill', ((v-34)/8*100).toFixed(1)+'%');
+  spo2 = calcSpo2();
+  updateUI();
+}
+
+function onManualBPM(v) {
+  bpm = parseInt(v);
+  bTarget = bpm;
+  document.getElementById('m-bpm-label').textContent = v + ' BPM';
+  document.getElementById('m-bpm').style.setProperty('--fill', ((v-30)/150*100).toFixed(1)+'%');
+  spo2 = calcSpo2();
+  updateUI();
+}
+
+/* ============================================================
+   SCENARIOS
+   ============================================================ */
+const SCENARIOS = {
+  normal: { temp:36.8, bpm:72,  label:'Normal Yetiskin',  desc:'T=36.8°C  BPM=72  SpO2~98%' },
+  fever:  { temp:39.3, bpm:105, label:'Atesli Hasta',     desc:'T=39.3°C  BPM=105 SpO2~95%' },
+  tachy:  { temp:37.1, bpm:142, label:'Tasikardi',        desc:'T=37.1°C  BPM=142 SpO2~93%' },
+  brady:  { temp:36.5, bpm:44,  label:'Bradikardi',       desc:'T=36.5°C  BPM=44  SpO2~95%' },
+  run:    { temp:37.9, bpm:162, label:'Kosu Sonrasi',     desc:'T=37.9°C  BPM=162 SpO2~91%' },
+  hypo:   { temp:34.6, bpm:50,  label:'Hipotermi',        desc:'T=34.6°C  BPM=50  SpO2~92%' },
+};
+
+function setActiveScenarioBtn(name) {
+  ['normal','fever','tachy','brady','run','hypo'].forEach(n => {
+    const btn = document.getElementById('sc-' + n);
+    if (btn) btn.classList.toggle('active-sc', n === name);
+  });
+}
+
+function setScenario(name) {
+  const s = SCENARIOS[name];
+  tTarget = s.temp;
+  bTarget = s.bpm;
+  activeScenario = name;
+  setActiveScenarioBtn(name);
+
+  if (manualMode) {
+    temp = s.temp; bpm = s.bpm;
+    spo2 = calcSpo2();
+    const mt = document.getElementById('m-temp');
+    const mb = document.getElementById('m-bpm');
+    mt.value = temp.toFixed(1);
+    mb.value = Math.round(bpm);
+    mt.style.setProperty('--fill', ((temp-34)/8*100).toFixed(1)+'%');
+    mb.style.setProperty('--fill', ((bpm-30)/150*100).toFixed(1)+'%');
+    document.getElementById('m-temp-label').textContent = temp.toFixed(1) + ' °C';
+    document.getElementById('m-bpm-label').textContent  = Math.round(bpm) + ' BPM';
+    updateUI();
+  }
+
+  log(`--- Senaryo: "${s.label}" → ${s.desc}`, 'info');
+  if (!running) startSim();
+}
+
+/* ============================================================
+   CSV EXPORT
+   ============================================================ */
+function exportCSV() {
+  if (dataLog.length === 0) {
+    log('CSV icin veri yok — once simulasyonu calistirin.', 'warn'); return;
+  }
+  const lines = ['Zaman,Sicaklik (C),KAH (BPM),SpO2 (%)'];
+  dataLog.forEach(r => lines.push(`${r.time},${r.temp},${r.bpm},${r.spo2}`));
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'hasta_takip_verisi.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  log(`CSV disa aktarildi: ${dataLog.length} kayit`, 'ok');
+}
+
+/* ============================================================
+   SOUND TOGGLE
+   ============================================================ */
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  if (soundEnabled && !audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  const btn = document.getElementById('snd-btn');
+  btn.textContent = soundEnabled ? '🔔  Alarm Sesi: Açık' : '🔕  Alarm Sesi: Kapalı';
+  btn.classList.toggle('on', soundEnabled);
+  if (soundEnabled) {
+    playBeep(660, 0.1); setTimeout(() => playBeep(880, 0.1), 150);
+  }
+  log(soundEnabled ? 'Alarm sesi acildi.' : 'Alarm sesi kapatildi.', 'info');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.getElementById('m-temp').style.setProperty('--fill', ((36.8-34)/8*100).toFixed(1)+'%');
+document.getElementById('m-bpm').style.setProperty('--fill', ((72-30)/150*100).toFixed(1)+'%');
+document.getElementById('pot').style.setProperty('--fill', '70%');
+
+updateUI();
+log('Sistem hazir. ▶ Simulasyonu Basla butonuna basin.', 'info');
+log('Manuel Mod: sol panelden kaydiricilarla serbest deger ayarlayabilirsiniz.', 'info');
+log('Senaryo butonlari: hedef degerler aninda uygulanir.', 'info');
+setTimeout(startSim, 400);
+</script>
+</body>
+</html>
